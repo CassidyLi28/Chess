@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,96 +7,88 @@ import { Badge } from '@/components/ui/badge';
 import { RotateCcw, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import type { Puzzle, PuzzleMove } from '@/types/puzzle';
 
+type Square = string;
+
 interface PuzzleBoardProps {
   puzzle: Puzzle;
   onPuzzleComplete: (success: boolean) => void;
 }
 
 export const PuzzleBoard = ({ puzzle, onPuzzleComplete }: PuzzleBoardProps) => {
-  const [game, setGame] = useState(() => new Chess(puzzle.fen));
+  // Single source of truth - use Chess instance directly
+  const chess = useMemo(() => new Chess(puzzle.fen), [puzzle.fen]);
+  const [position, setPosition] = useState(() => chess.fen());
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [feedback, setFeedback] = useState<string>('');
-  const [boardPosition, setBoardPosition] = useState(puzzle.fen);
-
-  // Force board to update when puzzle changes
+  
+  // Reset everything when puzzle changes
   useEffect(() => {
-    console.log('🎯 PUZZLE CHANGED - Setting up new game');
-    const newGame = new Chess(puzzle.fen);
-    console.log('🎯 PUZZLE FEN:', puzzle.fen);
-    console.log('🎯 PIECE AT f3:', newGame.get('f3'));
-    setGame(newGame);
-    setBoardPosition(puzzle.fen);
+    console.log('🎯 NEW PUZZLE LOADED:', puzzle.fen);
+    console.log('🎯 Chess.js board state:', chess.ascii());
+    console.log('🎯 Knight at f3?', chess.get('f3'));
+    
+    // Reset chess board to puzzle position
+    chess.load(puzzle.fen);
+    setPosition(chess.fen());
     setCurrentMoveIndex(0);
     setIsComplete(false);
     setFeedback('');
-  }, [puzzle.id, puzzle.fen]);
+  }, [puzzle.id, puzzle.fen, chess]);
 
-  const makeMove = (from: string, to: string, promotion?: string) => {
-    const gameCopy = new Chess(game.fen());
+  const onPieceDrop = useCallback((sourceSquare: string, targetSquare: string) => {
+    console.log('🎯 DROP EVENT:', sourceSquare, 'to', targetSquare);
     
-    console.log('Attempting move:', from, 'to', to);
-    console.log('Expected move:', puzzle.solution[currentMoveIndex]);
+    if (isComplete) return false;
     
     try {
-      const move = gameCopy.move({ from, to, promotion });
-      if (!move) {
-        setFeedback('Invalid move!');
+      const move = chess.move({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: 'q' // Always promote to queen for simplicity
+      });
+      
+      if (move === null) {
+        console.log('❌ Invalid move - piece will snap back');
         return false;
       }
-
-      console.log('Move made:', move);
-
+      
+      console.log('✅ Valid move made:', move);
+      
+      // Update position from single source of truth
+      setPosition(chess.fen());
+      
       const expectedMove = puzzle.solution[currentMoveIndex];
       
       if (move.from === expectedMove.from && move.to === expectedMove.to) {
-        setGame(gameCopy);
         setCurrentMoveIndex(prev => prev + 1);
         
         if (currentMoveIndex + 1 >= puzzle.solution.length) {
           setIsComplete(true);
-          setFeedback('Puzzle solved! Well done!');
+          setFeedback('🎉 Puzzle solved! Well done!');
           onPuzzleComplete(true);
         } else {
-          setFeedback(`Correct! Move ${currentMoveIndex + 2} of ${puzzle.solution.length}`);
+          setFeedback(`✅ Correct! Move ${currentMoveIndex + 2} of ${puzzle.solution.length}`);
         }
-        return true;
       } else {
-        // Allow any legal move for now to test
-        setGame(gameCopy);
-        setBoardPosition(gameCopy.fen()); // Update board position
-        setFeedback(`Move made: ${move.from}-${move.to}. Expected: ${expectedMove.from}-${expectedMove.to}`);
-        return true;
+        setFeedback(`Move: ${move.from}→${move.to}. Expected: ${expectedMove.from}→${expectedMove.to}`);
       }
+      
+      return true; // Move is valid - piece should stay
     } catch (error) {
       console.error('Move error:', error);
-      setFeedback('Invalid move!');
-      return false;
+      return false; // Error - piece will snap back
     }
-  };
+  }, [chess, isComplete, puzzle.solution, currentMoveIndex, onPuzzleComplete]);
 
-  const onDrop = (sourceSquare: string, targetSquare: string, piece: string) => {
-    if (isComplete) return false;
-    
-    const promotion = piece.toLowerCase().includes('p') && 
-      (targetSquare[1] === '8' || targetSquare[1] === '1') ? 'q' : undefined;
-    
-    return makeMove(sourceSquare, targetSquare, promotion);
-  };
-
-  const resetPuzzle = () => {
-    console.log('🔄 RESET BUTTON CLICKED!');
-    console.log('🔄 Creating new game with FEN:', puzzle.fen);
-    const newGame = new Chess(puzzle.fen);
-    console.log('🔄 New game position:', newGame.fen());
-    console.log('🔄 Knight at f3 after reset:', newGame.get('f3'));
-    
-    setGame(newGame);
-    setBoardPosition(puzzle.fen); // Force position update
+  const resetPuzzle = useCallback(() => {
+    console.log('🔄 RESET PUZZLE');
+    chess.load(puzzle.fen); // Reset chess instance to puzzle position
+    setPosition(chess.fen()); // Update visual position
     setCurrentMoveIndex(0);
     setIsComplete(false);
-    setFeedback('Reset puzzle');
-  };
+    setFeedback('Puzzle reset');
+  }, [chess, puzzle.fen]);
 
   const isCorrect = feedback.includes('Correct') || feedback.includes('solved');
 
@@ -120,21 +112,27 @@ export const PuzzleBoard = ({ puzzle, onPuzzleComplete }: PuzzleBoardProps) => {
 
       {/* Chess Board */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm aspect-square">
+        <div className="w-full max-w-lg">
           <Chessboard
-            position={boardPosition} // Use dedicated state for board position
-            onPieceDrop={onDrop}
+            key={`chess-${position}`} // Force re-render when position changes
+            position={position}
+            onPieceDrop={onPieceDrop}
             boardOrientation="white"
+            boardWidth={500}
             customBoardStyle={{
               borderRadius: '8px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
             }}
-            customDarkSquareStyle={{ backgroundColor: '#b58863' }}
-            customLightSquareStyle={{ backgroundColor: '#f0d9b5' }}
+            customDarkSquareStyle={{ 
+              backgroundColor: '#b58863',
+            }}
+            customLightSquareStyle={{ 
+              backgroundColor: '#f0d9b5',
+            }}
             arePiecesDraggable={!isComplete}
-            isDraggablePiece={({ piece }) => {
-              return piece[0] === 'w'; // Only white pieces are draggable
-            }}
+            isDraggablePiece={({ piece }) => piece[0] === 'w'}
             animationDuration={200}
+            showBoardNotation={true}
           />
         </div>
       </div>
