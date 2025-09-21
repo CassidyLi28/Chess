@@ -97,184 +97,194 @@ export const PuzzleFilters = ({ filters, onFiltersChange, isOpen, onToggle }: Pu
   }
 
   return (
-    <div className="bg-[#272522] border-b border-white/10 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          Puzzle Filters
-        </h3>
-        <button
-          onClick={onToggle}
-          className="text-gray-400 hover:text-white transition-colors"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex gap-2 mb-4 overflow-x-auto">
-        {(['difficulty', 'category', 'themes', 'rating'] as const).map((tab) => (
+    <div 
+      className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onToggle}
+    >
+      <div 
+        className="bg-[#312e2b] rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-y-auto border border-white/10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-[#272522] rounded-t-lg">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Puzzle Filters
+          </h3>
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === tab 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-white/10 text-gray-300 hover:bg-white/20'
-            }`}
+            onClick={onToggle}
+            className="text-gray-400 hover:text-white transition-colors text-xl"
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            ✕
           </button>
-        ))}
-      </div>
-
-      {/* Filter Content */}
-      <div className="min-h-[200px]">
-        {activeTab === 'difficulty' && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {Object.entries(difficultyConfig).map(([level, config]) => (
+        </div>
+        
+        <div className="p-4 bg-[#312e2b] rounded-b-lg">
+          {/* Filter Tabs */}
+          <div className="flex gap-2 mb-4 overflow-x-auto">
+            {(['difficulty', 'category', 'themes', 'rating'] as const).map((tab) => (
               <button
-                key={level}
-                onClick={() => updateFilters({ 
-                  difficulty: filters.difficulty === level ? undefined : level as DifficultyLevel 
-                })}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  filters.difficulty === level
-                    ? 'border-blue-500 bg-blue-500/20'
-                    : 'border-white/20 bg-white/5 hover:bg-white/10'
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  activeTab === tab 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
                 }`}
               >
-                <div className={`flex items-center gap-2 mb-2 ${config.color}`}>
-                  {config.icon}
-                  <span className="font-bold capitalize">{level}</span>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Filter Content */}
+          <div className="min-h-[200px]">
+            {activeTab === 'difficulty' && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {Object.entries(difficultyConfig).map(([level, config]) => (
+                  <button
+                    key={level}
+                    onClick={() => updateFilters({ 
+                      difficulty: filters.difficulty === level ? undefined : level as DifficultyLevel 
+                    })}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      filters.difficulty === level
+                        ? 'border-blue-500 bg-blue-500/20'
+                        : 'border-white/20 bg-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className={`flex items-center gap-2 mb-2 ${config.color}`}>
+                      {config.icon}
+                      <span className="font-bold capitalize">{level}</span>
+                    </div>
+                    <div className="text-xs text-gray-400">{config.rating}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'category' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {categoryOptions.map(({ value, label, description }) => (
+                  <button
+                    key={value}
+                    onClick={() => updateFilters({ 
+                      category: filters.category === value ? undefined : value 
+                    })}
+                    className={`p-4 rounded-lg border-2 text-left transition-all ${
+                      filters.category === value
+                        ? 'border-blue-500 bg-blue-500/20'
+                        : 'border-white/20 bg-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="font-bold text-white mb-1">{label}</div>
+                    <div className="text-xs text-gray-400">{description}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'themes' && (
+              <div className="space-y-6">
+                {Object.entries(themeGroups).map(([groupName, { themes, label }]) => (
+                  <div key={groupName}>
+                    <h4 className="text-sm font-bold text-gray-300 mb-3">{label}</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {themes.map((theme) => (
+                        <button
+                          key={theme}
+                          onClick={() => toggleTheme(theme)}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                            filters.themes?.includes(theme)
+                              ? 'bg-green-500 text-white'
+                              : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                          }`}
+                        >
+                          {theme.replace('-', ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'rating' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Rating Range
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="number"
+                      placeholder="Min (800)"
+                      value={filters.ratingRange?.[0] || ''}
+                      onChange={(e) => updateFilters({
+                        ratingRange: [
+                          parseInt(e.target.value) || 800,
+                          filters.ratingRange?.[1] || 3000
+                        ]
+                      })}
+                      className="w-24 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                      min="800"
+                      max="3000"
+                    />
+                    <span className="text-gray-400">-</span>
+                    <input
+                      type="number"
+                      placeholder="Max (3000)"
+                      value={filters.ratingRange?.[1] || ''}
+                      onChange={(e) => updateFilters({
+                        ratingRange: [
+                          filters.ratingRange?.[0] || 800,
+                          parseInt(e.target.value) || 3000
+                        ]
+                      })}
+                      className="w-24 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                      min="800"
+                      max="3000"
+                    />
+                  </div>
                 </div>
-                <div className="text-xs text-gray-400">{config.rating}</div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'category' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {categoryOptions.map(({ value, label, description }) => (
-              <button
-                key={value}
-                onClick={() => updateFilters({ 
-                  category: filters.category === value ? undefined : value 
-                })}
-                className={`p-4 rounded-lg border-2 text-left transition-all ${
-                  filters.category === value
-                    ? 'border-blue-500 bg-blue-500/20'
-                    : 'border-white/20 bg-white/5 hover:bg-white/10'
-                }`}
-              >
-                <div className="font-bold text-white mb-1">{label}</div>
-                <div className="text-xs text-gray-400">{description}</div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'themes' && (
-          <div className="space-y-6">
-            {Object.entries(themeGroups).map(([groupName, { themes, label }]) => (
-              <div key={groupName}>
-                <h4 className="text-sm font-bold text-gray-300 mb-3">{label}</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {themes.map((theme) => (
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { label: 'Beginner', range: [800, 1200] },
+                    { label: 'Club Player', range: [1200, 1600] },
+                    { label: 'Tournament', range: [1600, 2000] },
+                    { label: 'Expert', range: [2000, 2400] },
+                    { label: 'Master', range: [2400, 2600] },
+                    { label: 'GM Level', range: [2600, 3000] },
+                  ].map(({ label, range }) => (
                     <button
-                      key={theme}
-                      onClick={() => toggleTheme(theme)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        filters.themes?.includes(theme)
-                          ? 'bg-green-500 text-white'
-                          : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                      }`}
+                      key={label}
+                      onClick={() => updateFilters({ ratingRange: range as [number, number] })}
+                      className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors"
                     >
-                      {theme.replace('-', ' ')}
+                      {label}
+                      <div className="text-xs text-gray-400">{range[0]}-{range[1]}</div>
                     </button>
                   ))}
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        )}
 
-        {activeTab === 'rating' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Rating Range
-              </label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="number"
-                  placeholder="Min (800)"
-                  value={filters.ratingRange?.[0] || ''}
-                  onChange={(e) => updateFilters({
-                    ratingRange: [
-                      parseInt(e.target.value) || 800,
-                      filters.ratingRange?.[1] || 3000
-                    ]
-                  })}
-                  className="w-24 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
-                  min="800"
-                  max="3000"
-                />
-                <span className="text-gray-400">-</span>
-                <input
-                  type="number"
-                  placeholder="Max (3000)"
-                  value={filters.ratingRange?.[1] || ''}
-                  onChange={(e) => updateFilters({
-                    ratingRange: [
-                      filters.ratingRange?.[0] || 800,
-                      parseInt(e.target.value) || 3000
-                    ]
-                  })}
-                  className="w-24 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
-                  min="800"
-                  max="3000"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {[
-                { label: 'Beginner', range: [800, 1200] },
-                { label: 'Club Player', range: [1200, 1600] },
-                { label: 'Tournament', range: [1600, 2000] },
-                { label: 'Expert', range: [2000, 2400] },
-                { label: 'Master', range: [2400, 2600] },
-                { label: 'GM Level', range: [2600, 3000] },
-              ].map(({ label, range }) => (
-                <button
-                  key={label}
-                  onClick={() => updateFilters({ ratingRange: range as [number, number] })}
-                  className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors"
-                >
-                  {label}
-                  <div className="text-xs text-gray-400">{range[0]}-{range[1]}</div>
-                </button>
-              ))}
+          {/* Clear Filters Button */}
+          <div className="flex justify-between items-center mt-6 pt-4 border-t border-white/10">
+            <button
+              onClick={() => updateFilters({ difficulty: undefined, category: undefined, themes: undefined, ratingRange: undefined })}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
+            >
+              Clear All Filters
+            </button>
+            <div className="text-sm text-gray-400">
+              {filters.difficulty && `${filters.difficulty} • `}
+              {filters.category && `${filters.category} • `}
+              {filters.themes?.length && `${filters.themes.length} themes • `}
+              {filters.ratingRange && `${filters.ratingRange[0]}-${filters.ratingRange[1]}`}
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Clear Filters Button */}
-      <div className="flex justify-between items-center mt-6 pt-4 border-t border-white/10">
-        <button
-          onClick={() => updateFilters({ difficulty: undefined, category: undefined, themes: undefined, ratingRange: undefined })}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
-        >
-          Clear All Filters
-        </button>
-        <div className="text-sm text-gray-400">
-          {filters.difficulty && `${filters.difficulty} • `}
-          {filters.category && `${filters.category} • `}
-          {filters.themes?.length && `${filters.themes.length} themes • `}
-          {filters.ratingRange && `${filters.ratingRange[0]}-${filters.ratingRange[1]}`}
         </div>
       </div>
     </div>

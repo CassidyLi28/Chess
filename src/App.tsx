@@ -6,11 +6,13 @@ import { ThemeToggle } from './components/theme-toggle';
 import { Timer, Target, ChevronLeft, ChevronRight, Filter, Brain, Puzzle } from 'lucide-react';
 import type { Puzzle as PuzzleType, PuzzleFilters as PuzzleFiltersType } from './types/puzzle';
 import { advancedPuzzleDatabase } from './data/advancedPuzzles';
+import { allPuzzleGroups } from './data/puzzleGroups';
 
 // Main puzzle collection
 const puzzleCollection = advancedPuzzleDatabase;
 
 type AppMode = 'puzzles' | 'analysis';
+type PuzzleGroupType = 'all' | 'knightTactics' | 'pinTactics' | 'backRankMates' | 'discoveredAttacks' | 'sacrifices';
 
 function App() {
   const [mode, setMode] = useState<AppMode>('puzzles');
@@ -19,13 +21,23 @@ function App() {
   const [timer, setTimer] = useState(180); // 3 minutes
   const [filters, setFilters] = useState<PuzzleFiltersType>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedPuzzleGroup, setSelectedPuzzleGroup] = useState<PuzzleGroupType>('all');
   
+  // Get current puzzle collection based on selected group
+  const currentPuzzleCollection = useMemo(() => {
+    if (selectedPuzzleGroup === 'all') {
+      return advancedPuzzleDatabase;
+    }
+    return allPuzzleGroups[selectedPuzzleGroup] || [];
+  }, [selectedPuzzleGroup]);
+
   // Filter puzzles based on current filters
   const filteredPuzzles = useMemo(() => {
     console.log('🔍 Filtering puzzles with filters:', filters);
-    console.log('🔍 Total puzzles in database:', puzzleCollection.length);
+    console.log('🔍 Selected group:', selectedPuzzleGroup);
+    console.log('🔍 Total puzzles in collection:', currentPuzzleCollection.length);
     
-    const filtered = puzzleCollection.filter(puzzle => {
+    const filtered = currentPuzzleCollection.filter(puzzle => {
       if (filters.difficulty && puzzle.difficulty !== filters.difficulty) return false;
       if (filters.category && puzzle.category !== filters.category) return false;
       if (filters.themes?.length && !filters.themes.some(theme => puzzle.themes.includes(theme))) return false;
@@ -37,24 +49,27 @@ function App() {
     });
     
     console.log('🔍 Filtered puzzles count:', filtered.length);
-    console.log('🔍 Sample of categories:', puzzleCollection.map(p => p.category).slice(0, 10));
-    console.log('🔍 Sample of themes:', puzzleCollection.map(p => p.themes).slice(0, 5));
     
     return filtered;
-  }, [filters]);
+  }, [filters, currentPuzzleCollection, selectedPuzzleGroup]);
   
-  const currentPuzzle = filteredPuzzles[currentPuzzleIndex] || puzzleCollection[0];
+  const currentPuzzle = filteredPuzzles[currentPuzzleIndex] || currentPuzzleCollection[0];
 
   const handlePuzzleComplete = (success: boolean) => {
     if (success) {
       setStreak(prev => prev + 1);
       // Auto-advance to next puzzle after success
       setTimeout(() => {
-        setCurrentPuzzleIndex(prev => (prev + 1) % puzzleCollection.length);
+        setCurrentPuzzleIndex(prev => (prev + 1) % filteredPuzzles.length);
       }, 2000);
     } else {
       setStreak(0);
     }
+  };
+
+  const handlePuzzleGroupChange = (newGroup: PuzzleGroupType) => {
+    setSelectedPuzzleGroup(newGroup);
+    setCurrentPuzzleIndex(0); // Reset to first puzzle of new group
   };
 
   const nextPuzzle = () => {
@@ -182,6 +197,8 @@ function App() {
               puzzle={currentPuzzle} 
               onPuzzleComplete={handlePuzzleComplete}
               onNewPuzzle={getRandomPuzzle}
+              selectedPuzzleGroup={selectedPuzzleGroup}
+              onPuzzleGroupChange={handlePuzzleGroupChange}
             />
             
             {/* Bottom Stats */}

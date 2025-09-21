@@ -1,6 +1,8 @@
 import type { Puzzle } from '@/types/puzzle';
+import { expandedPuzzleDatabase } from './puzzleGroups';
 
-export const advancedPuzzleDatabase: Puzzle[] = [
+// Legacy puzzles (keeping some for variety)
+const legacyPuzzles: Puzzle[] = [
   // ===== MATING PATTERNS (1000-2000) =====
   {
     id: 'mate-smothered-001',
@@ -587,3 +589,9 @@ export const getPuzzlesByTheme = (theme: string): Puzzle[] => {
 export const getPuzzlesByRatingRange = (min: number, max: number): Puzzle[] => {
   return advancedPuzzleDatabase.filter(p => p.rating >= min && p.rating <= max);
 };
+
+// Main puzzle database combining legacy and new organized groups
+export const advancedPuzzleDatabase: Puzzle[] = [
+  ...legacyPuzzles,
+  ...expandedPuzzleDatabase
+];

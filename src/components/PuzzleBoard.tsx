@@ -1,18 +1,21 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Chess } from 'chess.js';
-import { RotateCcw, ChevronRight, CheckCircle, XCircle, Brain, Lightbulb } from 'lucide-react';
+import { RotateCcw, ChevronRight, CheckCircle, XCircle, Brain, Lightbulb, Layers } from 'lucide-react';
 import type { Puzzle, PuzzleMove } from '@/types/puzzle';
 // import { stockfishService } from '@/services/stockfish';
 
 type Square = string;
+type PuzzleGroupType = 'all' | 'knightTactics' | 'pinTactics' | 'backRankMates' | 'discoveredAttacks' | 'sacrifices';
 
 interface PuzzleBoardProps {
   puzzle: Puzzle;
   onPuzzleComplete: (success: boolean) => void;
   onNewPuzzle?: () => void;
+  selectedPuzzleGroup?: PuzzleGroupType;
+  onPuzzleGroupChange?: (group: PuzzleGroupType) => void;
 }
 
-export const PuzzleBoard = ({ puzzle, onPuzzleComplete, onNewPuzzle }: PuzzleBoardProps) => {
+export const PuzzleBoard = ({ puzzle, onPuzzleComplete, onNewPuzzle, selectedPuzzleGroup = 'all', onPuzzleGroupChange }: PuzzleBoardProps) => {
   // Single source of truth - use Chess instance directly
   const chess = useMemo(() => new Chess(puzzle.fen), [puzzle.fen]);
   const [position, setPosition] = useState(() => chess.fen());
@@ -23,6 +26,16 @@ export const PuzzleBoard = ({ puzzle, onPuzzleComplete, onNewPuzzle }: PuzzleBoa
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [hint, setHint] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showPuzzleTypeDropdown, setShowPuzzleTypeDropdown] = useState(false);
+
+  const puzzleGroupOptions = [
+    { value: 'all', label: 'All Puzzles', description: 'Complete collection' },
+    { value: 'knightTactics', label: 'Knight Tactics', description: 'Forks & knight moves' },
+    { value: 'pinTactics', label: 'Pin Tactics', description: 'Pins & skewers' },
+    { value: 'backRankMates', label: 'Back Rank Mates', description: 'Checkmate patterns' },
+    { value: 'discoveredAttacks', label: 'Discovered Attacks', description: 'Discovery tactics' },
+    { value: 'sacrifices', label: 'Sacrifices', description: 'Material sacrifices' }
+  ] as const;
 
   // Helper function to get piece symbols
   const getPieceSymbol = (piece: any) => {
@@ -227,7 +240,17 @@ export const PuzzleBoard = ({ puzzle, onPuzzleComplete, onNewPuzzle }: PuzzleBoa
     setSelectedSquare(null);
     setAiAnalysis('');
     setHint('');
+    setShowPuzzleTypeDropdown(false); // Close dropdown on puzzle change
   }, [puzzle.id, puzzle.fen, chess]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowPuzzleTypeDropdown(false);
+    if (showPuzzleTypeDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showPuzzleTypeDropdown]);
 
 
   const resetPuzzle = useCallback(() => {
@@ -245,9 +268,8 @@ export const PuzzleBoard = ({ puzzle, onPuzzleComplete, onNewPuzzle }: PuzzleBoa
   return (
     <div className="flex-1 flex flex-col">
       {/* Puzzle Info */}
-      <div className="p-3 text-center border-b border-white/10">
-        <div className="text-white font-medium">{puzzle.description}</div>
-        <div className="flex gap-2 justify-center mt-2">
+      <div className="p-2 text-center border-b border-white/10">
+        <div className="flex gap-2 justify-center">
           <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded">
             {puzzle.difficulty}
           </span>
@@ -273,18 +295,39 @@ export const PuzzleBoard = ({ puzzle, onPuzzleComplete, onNewPuzzle }: PuzzleBoa
             return (
               <div
                 key={square}
-                className={`aspect-square flex items-center justify-center font-bold cursor-pointer hover:scale-105 transition-all duration-200 ${selectedSquare === square ? 'ring-4 ring-blue-400 ring-inset shadow-lg' : ''}`}
+                className={`aspect-square flex items-center justify-center cursor-pointer transition-all duration-150 relative ${selectedSquare === square ? 'ring-4 ring-yellow-400 ring-inset' : ''} ${piece ? 'hover:bg-yellow-300/20' : ''}`}
                 style={{
-                  backgroundColor: isDark ? '#B58863' : '#F0D9B5',
-                  color: '#000000',
-                  fontSize: 'clamp(2rem, 6vw, 4rem)'
+                  backgroundColor: isDark ? '#769656' : '#eeeed2',
                 }}
                 onClick={() => handleSquareClick(square)}
               >
                 {piece && (
-                  <span className="select-none pointer-events-none">
+                  <span 
+                    className="select-none pointer-events-none text-shadow-sm transition-transform hover:scale-110"
+                    style={{
+                      fontSize: 'clamp(2.5rem, 7vw, 4.5rem)',
+                      color: piece.color === 'w' ? '#ffffff' : '#000000',
+                      textShadow: piece.color === 'w' 
+                        ? '1px 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.6)' 
+                        : '1px 1px 2px rgba(255,255,255,0.8), 0 0 4px rgba(255,255,255,0.6)',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                    }}
+                  >
                     {getPieceSymbol(piece)}
                   </span>
+                )}
+                {/* Square coordinates for chess.com style */}
+                {(col === 0 && row === 7) && (
+                  <div className="absolute bottom-1 left-1 text-xs font-bold opacity-70" 
+                       style={{ color: isDark ? '#eeeed2' : '#769656' }}>
+                    {8 - row}
+                  </div>
+                )}
+                {(row === 7) && (
+                  <div className="absolute bottom-1 right-1 text-xs font-bold opacity-70" 
+                       style={{ color: isDark ? '#eeeed2' : '#769656' }}>
+                    {String.fromCharCode(97 + col)}
+                  </div>
                 )}
               </div>
             );
@@ -358,6 +401,45 @@ export const PuzzleBoard = ({ puzzle, onPuzzleComplete, onNewPuzzle }: PuzzleBoa
           <Lightbulb className="h-4 w-4" />
           {isAnalyzing ? 'Analyzing...' : 'Get Hint'}
         </button>
+
+        {/* Puzzle Type Selector */}
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowPuzzleTypeDropdown(!showPuzzleTypeDropdown);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          >
+            <Layers className="h-4 w-4" />
+            Puzzle Type
+          </button>
+          
+          {showPuzzleTypeDropdown && (
+            <div 
+              className="absolute bottom-full left-0 mb-2 w-64 bg-[#2a2a2a] border border-white/20 rounded-lg shadow-lg z-50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-2">
+                {puzzleGroupOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      onPuzzleGroupChange?.(option.value as PuzzleGroupType);
+                      setShowPuzzleTypeDropdown(false);
+                    }}
+                    className={`w-full text-left p-3 rounded-lg hover:bg-white/10 transition-colors ${
+                      selectedPuzzleGroup === option.value ? 'bg-purple-500/20 border border-purple-500/30' : ''
+                    }`}
+                  >
+                    <div className="font-medium text-white">{option.label}</div>
+                    <div className="text-xs text-gray-400">{option.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         
         {isComplete && (
           <button

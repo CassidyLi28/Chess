@@ -385,18 +385,39 @@ export const AnalysisMode = ({ onBack }: AnalysisModeProps) => {
             return (
               <div
                 key={square}
-                className={`aspect-square flex items-center justify-center font-bold cursor-pointer hover:scale-105 transition-all duration-200 ${selectedSquare === square ? 'ring-4 ring-blue-400 ring-inset shadow-lg' : ''}`}
+                className={`aspect-square flex items-center justify-center cursor-pointer transition-all duration-150 relative ${selectedSquare === square ? 'ring-4 ring-yellow-400 ring-inset' : ''} ${piece ? 'hover:bg-yellow-300/20' : ''}`}
                 style={{
-                  backgroundColor: isDark ? '#B58863' : '#F0D9B5',
-                  color: '#000000',
-                  fontSize: 'clamp(2rem, 6vw, 4rem)'
+                  backgroundColor: isDark ? '#769656' : '#eeeed2',
                 }}
                 onClick={() => handleSquareClick(square)}
               >
                 {piece && (
-                  <span className="select-none pointer-events-none">
+                  <span 
+                    className="select-none pointer-events-none text-shadow-sm transition-transform hover:scale-110"
+                    style={{
+                      fontSize: 'clamp(2.5rem, 7vw, 4.5rem)',
+                      color: piece.color === 'w' ? '#ffffff' : '#000000',
+                      textShadow: piece.color === 'w' 
+                        ? '1px 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.6)' 
+                        : '1px 1px 2px rgba(255,255,255,0.8), 0 0 4px rgba(255,255,255,0.6)',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                    }}
+                  >
                     {getPieceSymbol(piece)}
                   </span>
+                )}
+                {/* Square coordinates for chess.com style */}
+                {(col === 0 && row === 7) && (
+                  <div className="absolute bottom-1 left-1 text-xs font-bold opacity-70" 
+                       style={{ color: isDark ? '#eeeed2' : '#769656' }}>
+                    {8 - row}
+                  </div>
+                )}
+                {(row === 7) && (
+                  <div className="absolute bottom-1 right-1 text-xs font-bold opacity-70" 
+                       style={{ color: isDark ? '#eeeed2' : '#769656' }}>
+                    {String.fromCharCode(97 + col)}
+                  </div>
                 )}
               </div>
             );
